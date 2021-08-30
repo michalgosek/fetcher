@@ -1,11 +1,23 @@
 package api
 
 import (
-	"fmt"
+	"encoding/json"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
 )
+
+const (
+	HealthEndpoint  = "/v1/health"
+	VersionEndponit = "/v1/version"
+)
+
+func newRouter() *httprouter.Router {
+	r := httprouter.New()
+	r.PanicHandler = recovery()
+	r.GET(HealthEndpoint, health())
+	return r
+}
 
 type API struct {
 	r *httprouter.Router
@@ -16,15 +28,39 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func New() *API {
-	r := httprouter.New()
-	r.GET("/v1/health", healthHandler)
-
+	r := newRouter()
 	a := API{
 		r: r,
 	}
 	return &a
 }
 
-func healthHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	fmt.Fprintf(w, "ok!\n")
+type JSONResponse struct {
+	Message string
+	Code    int
+}
+
+func health() httprouter.Handle {
+	return func(rw http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		response(rw, JSONResponse{Message: "OK", Code: http.StatusOK}, http.StatusOK)
+	}
+}
+
+func recovery() func(rw http.ResponseWriter, r *http.Request, err interface{}) {
+	return func(rw http.ResponseWriter, r *http.Request, err interface{}) {
+		response(rw, JSONResponse{Message: "InternalServerError", Code: http.StatusInternalServerError}, http.StatusInternalServerError)
+	}
+}
+
+func response(w http.ResponseWriter, data interface{}, code int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	if data != nil {
+		enc := json.NewEncoder(w)
+		enc.SetIndent("", "\t")
+		err := enc.Encode(data)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}
 }
