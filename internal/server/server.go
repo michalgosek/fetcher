@@ -43,7 +43,6 @@ func (s *Server) ListenAndServe() error {
 
 func (s *Server) GracefulShutdown(quit <-chan os.Signal, done chan<- struct{}) {
 	<-quit
-
 	ctx, cancel := context.WithTimeout(context.Background(), s.cfg.ShutdownTime)
 	defer cancel()
 	s.logger.Info("Shutting down service")
