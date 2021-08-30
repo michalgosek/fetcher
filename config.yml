@@ -1,3 +1,7 @@
 server:
   addr: 8080
-  shutdownTime: 5s 
+  shutdownTime: 5s
+
+worker:
+  URL: "https://httpbin.org/range/15"
+  interval: 2s 
