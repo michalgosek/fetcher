@@ -3,13 +3,16 @@ package config
 import (
 	"errors"
 	"fetcher/internal/server"
+	"fetcher/internal/worker"
 	"fmt"
+	"io/fs"
 
 	"github.com/spf13/viper"
 )
 
 type Config struct {
 	Server server.Config
+	Worker worker.Config
 	path   string
 }
 
@@ -32,8 +35,12 @@ func New(opts ...Option) (*Config, error) {
 
 	viper.SetConfigFile(c.path)
 	err := viper.ReadInConfig()
-	if err != nil {
+	var target *fs.PathError
+	if err != nil && errors.As(err, &target) {
 		return nil, ErrConfigFileNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("reading config failed: %v", err)
 	}
 
 	err = viper.Unmarshal(&c)
